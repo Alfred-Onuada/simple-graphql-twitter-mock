@@ -1,0 +1,34 @@
+type Person{
+  _id: ID!
+  name: String!
+  email: String!
+  age: Int!
+  bio: String
+  lastFiveTweets: [Tweet!]! # means null can not be a value in the array and this feild cannot return null instead it will return an empty array
+}
+
+type Tweet{
+  _id: ID!
+  description: String!
+  person: Person!
+  likes: Int!
+}
+
+type Query{
+  getPerson(_id: ID!): Person
+  people: [Person!]!
+  getTweet(_id: ID!): Tweet
+  tweets: [Tweet!]!
+}
+
+type Mutation{
+  addPerson(name: String!, email: String!, age: Int!, bio: String): Person
+  deletePerson(_id: ID!): Person
+  addTweet(description: String!, person: ID!): Tweet
+  deleteTweet(_id: ID!): Tweet
+}
+
+type Subscription{
+  newTweetAdded: Tweet!
+  newTweetAddedFromSpecificUser(_id: ID!): Tweet!
+}

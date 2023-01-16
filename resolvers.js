@@ -153,7 +153,7 @@ const resolvers = {
       if (likes) {
         return likes;
       } else {
-        let likes = Math.ceil(Math.random() * 1_000_000_000);
+        let likes = Math.ceil(Math.random() * 1_000_000);
 
         await db.collection('tweets').updateOne({ _id: ObjectId(_id) }, { $set: { likes } })
         return likes;

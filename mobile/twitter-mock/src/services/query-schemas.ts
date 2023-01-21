@@ -14,7 +14,7 @@ const QUERY_FOR_TWEETS = `#graphql
 `;
 
 const QUERY_DELETE_TWEET = `#graphql
-  mutation {
+  mutation DeleteTweet($id: ID!) {
     deleteTweet(_id: $id) {
       description
     }
@@ -31,14 +31,16 @@ const QUERY_FOR_USERS = `#graphql
 `;
 
 const SAVE_TWEET = `#graphql
-  mutation {
+  mutation SaveTweet($description: String!, $person: ID!) {
     addTweet(description: $description, person: $person) {
+      _id
       description
       likes
-      _id
       person {
-        age
-      }
+        _id
+        name
+        email
+      }  
     }
   }
 `;

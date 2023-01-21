@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, StatusBar as rnStatusBar, Platform, FlatList, TouchableOpacity, Modal, TextInput, Pressable } from 'react-native';
 import { loadAsync } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,24 +19,12 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
   
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [tweets, setTweets] = useState([]);
+  const [tweets, setTweets] = useState<ITweet[]>([]);
   const [loading, setLoading] = useState(true);
   const [tweetModalOpenStatus, setTweetModalOpenStatus] = useState(false);
   const [listOfUsers, setListOfUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [tweetDescription, setTweetDescription] = useState('');
-
-  const deleteTweetInList = function (id: String) {
-    setTweets(prevTweets => {
-      let tweets = prevTweets.filter((tweet: ITweet) => tweet._id !== id) 
-
-      return tweets;
-    })
-  };
-
-  const addTweet = function () {
-    setTweetModalOpenStatus(true)
-  };
 
   (async () => {
     try {
@@ -53,50 +41,70 @@ export default function App() {
     }
   })();
 
-  // Fetch tweets
-  (async () => {
-    // for some reason react tends to re run this over and over again, migh tbe ficable ia usecallback though
-    if (tweets.length) {
-      
-    }
+  const deleteTweetInList = function (id: String) {
+    setTweets(prevTweets => {
+      let tweets = prevTweets.filter((tweet: ITweet) => tweet._id !== id) 
 
-    const response = await UseCustomFetch(QUERY_FOR_TWEETS);
-    setLoading(false);
-    
-    if (response.error) {
-      showToast({ msg: "Failed to fetch tweets", danger: true });
-      return;
-    }
-    
-    setTweets(response.data.tweets);
-  })();
+      return tweets;
+    })
+  };
+
+  const addTweet = function () {
+    setTweetModalOpenStatus(true)
+  };
 
   const saveTweet = async () => {
+    // basically if they exist
     if (tweetDescription.length > 0 && selectedUser.length > 0) {
       const newTweet = { description: tweetDescription, person: selectedUser };
 
       const response = await UseCustomFetch(SAVE_TWEET, newTweet);
 
-      console.log(response);
+      if (response.error) {
+        showToast({ msg: "An error occured while adding tweet", danger: true });
+        return;
+      }
+
+      setTweets((prevTweets: ITweet[]) => {
+        let newSetOfTweets = [response.data.addTweet, ...prevTweets];
+
+        return newSetOfTweets;
+      });
     }
   };
 
-  // Fetch users
-  (async () => {
-    // for some reason react tends to re run this over and over again, migh tbe ficable ia usecallback though
-    if (listOfUsers.length) {
-      return
-    }
+  useEffect(() => {
+    const abortController = new AbortController();
 
-    const response = await UseCustomFetch(QUERY_FOR_USERS);
-    
-    if (response.error) {
-      showToast({ msg: "Failed to fetch tweets", danger: true });
-      return;
-    }
+    // Fetch tweets
+    (async () => {
+      const response = await UseCustomFetch(QUERY_FOR_TWEETS, undefined, abortController.signal);
+      setLoading(false);
+      
+      if (response.error) {
+        showToast({ msg: "Failed to fetch tweets", danger: true });
+        return;
+      }
+      
+      setTweets(response.data.tweets);
+    })();
 
-    setListOfUsers(response.data.people);
-  })();
+    // Fetch users
+    (async () => {
+      const response = await UseCustomFetch(QUERY_FOR_USERS, undefined, abortController.signal);
+      
+      if (response.error) {
+        showToast({ msg: "Failed to fetch tweets", danger: true });
+        return;
+      }
+
+      setListOfUsers(response.data.people);
+    })();
+
+    return () => {
+      abortController.abort();
+    }
+  }, []);
 
   if (fontsLoaded === false) {
     return null;
@@ -153,7 +161,7 @@ export default function App() {
                   placeholder="What's on your mind?" />
 
                 <TouchableOpacity style={styles.btn}
-                  onPress={() => {}}>
+                  onPress={saveTweet}>
                   <Text style={styles.btnText}>Add Tweet</Text>
                   <FontAwesome name="send" size={24} color="white" />
                 </TouchableOpacity>

@@ -35,7 +35,8 @@ const resolvers = {
       }
     },
     tweets: async () => {
-      const cursor = db.collection('tweets').find();
+      // figure out how to sort
+      const cursor = db.collection('tweets').find({}, { sort: -1 });
       const tweets = await cursor.toArray();
 
       return tweets;

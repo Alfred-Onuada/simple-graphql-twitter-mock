@@ -36,7 +36,7 @@ const resolvers = {
     },
     tweets: async () => {
       // figure out how to sort
-      const cursor = db.collection('tweets').find({}, { sort: -1 });
+      const cursor = db.collection('tweets').find().sort([["_id", -1]]);
       const tweets = await cursor.toArray();
 
       return tweets;
@@ -108,6 +108,7 @@ const resolvers = {
   Subscription: {
     newTweetAdded: {
       subscribe: () => {
+        console.log("Hello World")
         return pubsub.asyncIterator('TWEET_ADDED')
       }
     },

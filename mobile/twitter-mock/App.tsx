@@ -4,7 +4,7 @@ import { StyleSheet, Text, View, SafeAreaView, StatusBar as rnStatusBar, Platfor
 import { loadAsync } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import { QUERY_FOR_TWEETS, QUERY_FOR_USERS, SAVE_TWEET } from './src/services/query-schemas';
+import { NEW_TWEET_SUB, PERSONAL_SUBSCRIPTION_QUERY, QUERY_FOR_PERSON, QUERY_FOR_TWEETS, QUERY_FOR_USERS, SAVE_TWEET } from './src/services/query-schemas';
 import Loading from './src/components/loading';
 import TweetCard from './src/components/tweet-card';
 import UseCustomFetch from './src/services/useCustomFetch';
@@ -25,6 +25,9 @@ export default function App() {
   const [listOfUsers, setListOfUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [tweetDescription, setTweetDescription] = useState('');
+  const [profileModalOpenStatus, setProfileModalOpenStatus] = useState(false);
+  const [profileDetails, setProfileDetails] = useState<IPerson>();
+  const [subcribed, setSubscribed] = useState(false);
 
   (async () => {
     try {
@@ -40,6 +43,57 @@ export default function App() {
       console.log("Font's failed to load");
     }
   })();
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    // Fetch tweets
+    (async () => {
+      const response = await UseCustomFetch(QUERY_FOR_TWEETS, undefined, abortController.signal);
+      setLoading(false);
+      
+      if (response.errors) {
+        showToast({ msg: "Failed to fetch tweets", danger: true });
+        return;
+      }
+      
+      setTweets(response.data.tweets);
+    })();
+
+    // Fetch users
+    (async () => {
+      const response = await UseCustomFetch(QUERY_FOR_USERS, undefined, abortController.signal);
+      
+      if (response.errors) {
+        showToast({ msg: "Failed to fetch tweets", danger: true });
+        return;
+      }
+
+      setListOfUsers(response.data.people);
+    })();
+
+    return () => {
+      abortController.abort();
+    }
+  }, []);
+
+  const subscribeAction = async function (id: String) {
+  
+    setSubscribed(currState => !currState);
+  }
+
+  const openProfile = async function (id: String) {
+    const response = await UseCustomFetch(QUERY_FOR_PERSON, { id });
+
+    if (response.errors) {
+      showToast({ msg: "Something went wrong fetching profile info", danger: true });
+      return;
+    }
+
+    setProfileDetails(response.data.getPerson);
+
+    setProfileModalOpenStatus(true);
+  }
 
   const deleteTweetInList = function (id: String) {
     setTweets(prevTweets => {
@@ -60,7 +114,7 @@ export default function App() {
 
       const response = await UseCustomFetch(SAVE_TWEET, newTweet);
 
-      if (response.error) {
+      if (response.errors) {
         showToast({ msg: "An error occured while adding tweet", danger: true });
         return;
       }
@@ -70,41 +124,15 @@ export default function App() {
 
         return newSetOfTweets;
       });
+
+      // reset the form values
+      setSelectedUser('');
+      setTweetDescription('');
+
+      // close the tweet modal
+      setTweetModalOpenStatus(false);
     }
   };
-
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    // Fetch tweets
-    (async () => {
-      const response = await UseCustomFetch(QUERY_FOR_TWEETS, undefined, abortController.signal);
-      setLoading(false);
-      
-      if (response.error) {
-        showToast({ msg: "Failed to fetch tweets", danger: true });
-        return;
-      }
-      
-      setTweets(response.data.tweets);
-    })();
-
-    // Fetch users
-    (async () => {
-      const response = await UseCustomFetch(QUERY_FOR_USERS, undefined, abortController.signal);
-      
-      if (response.error) {
-        showToast({ msg: "Failed to fetch tweets", danger: true });
-        return;
-      }
-
-      setListOfUsers(response.data.people);
-    })();
-
-    return () => {
-      abortController.abort();
-    }
-  }, []);
 
   if (fontsLoaded === false) {
     return null;
@@ -124,6 +152,7 @@ export default function App() {
     <RootSiblingParent>
       <SafeAreaView style={styles.safeArea}>
 
+        {/* Add tweet modal */}
         <Modal
           animationType='slide'
           visible={tweetModalOpenStatus}
@@ -169,6 +198,42 @@ export default function App() {
             </View>  
         </Modal>
 
+        {/* User profile modal */}
+        <Modal
+          visible={profileModalOpenStatus}
+          transparent={true}
+          animationType='slide'>
+            <View style={styles.modalDim}>
+              <View style={styles.modalContent}>
+                <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontFamily: 'DMSans-Bold', fontSize: 20, marginBottom: 20 }}>Profile</Text>
+                  <Pressable onPress={() => setProfileModalOpenStatus(false)}>
+                    <MaterialIcons name='close' size={24} color='black' />
+                  </Pressable>
+                </View>
+                
+                {
+                  profileDetails && 
+                  <View>
+                    <View>
+                      <Text style={styles.profileInfo}><Text style={styles.profileInfoTitle}>Name:</Text> {profileDetails.name}</Text>
+                      <Text style={styles.profileInfo}><Text style={styles.profileInfoTitle}>Email:</Text> {profileDetails.email}</Text>
+                      <Text style={styles.profileInfo}><Text style={styles.profileInfoTitle}>Bio:</Text> {profileDetails.bio}</Text>
+                      <Text style={styles.profileInfo}><Text style={styles.profileInfoTitle}>Year of birth:</Text> {profileDetails.age ? new Date().getFullYear() - profileDetails.age : ''}</Text>
+                    </View>
+
+                    <TouchableOpacity style={styles.subBtn}
+                      onPress={() => subscribeAction(profileDetails._id)}>
+                      <Text style={styles.subText}>{ subcribed ? 'Subscribed' : 'Subscribe' }</Text>
+                    </TouchableOpacity>
+                  </View>
+                }
+
+              </View>
+            </View>
+        </Modal>
+
+
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>My Twitter</Text>
@@ -179,7 +244,8 @@ export default function App() {
             renderItem={({ item }) => (
               <TweetCard 
                 details={item}
-                deleteTweetInList={deleteTweetInList} />
+                deleteTweetInList={deleteTweetInList}
+                openProfile={openProfile} />
             )} 
             />
 
@@ -266,5 +332,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 25,
     alignItems: 'center'
+  },
+  profileInfo: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 17,
+    marginVertical: 10
+  },
+  profileInfoTitle: {
+    fontWeight: 'bold'
+  },
+  subBtn: {
+    backgroundColor: "rgb(29, 155, 240)",
+    paddingVertical: 10,
+    marginTop: 20
+  },
+  subText: {
+    textAlign: 'center',
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'DMSans-Regular'
   }
 });

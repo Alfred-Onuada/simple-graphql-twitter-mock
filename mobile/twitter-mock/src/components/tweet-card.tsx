@@ -5,7 +5,7 @@ import showToast from "../services/toast";
 import UseCustomFetch from "../services/useCustomFetch";
 import { QUERY_DELETE_TWEET } from "../services/query-schemas";
 
-export default function TweetCard({ details, deleteTweetInList }: { details: ITweet, deleteTweetInList: (id: String) => void }) {
+export default function TweetCard({ details, deleteTweetInList, openProfile }: { details: ITweet, deleteTweetInList: (id: String) => void, openProfile: (id: String) => void }) {
 
   const formatTwitterCount = function (count: number) {
     if (count < 1000) {
@@ -20,15 +20,15 @@ export default function TweetCard({ details, deleteTweetInList }: { details: ITw
   }
 
   const deleteTweet = async function (id: String) {
-    showToast({ msg: "Tweet deleted" })    
-
     const response = await UseCustomFetch(QUERY_DELETE_TWEET, { id });
 
-    if (response.error) {
+    if (response.errors) {
       showToast({ msg: "Action failed", danger: true })
+      return
     }
 
     deleteTweetInList(id);
+    showToast({ msg: "Tweet deleted" })
   }
 
   return (
@@ -36,7 +36,7 @@ export default function TweetCard({ details, deleteTweetInList }: { details: ITw
       <View style={styles.tweetHeader}>
         <Text style={{ ...styles.fontFam, ...styles.name }}>@{ details.person.name} - { details.person.email }</Text>
         {/* opens profile modal */}
-        <Pressable> 
+        <Pressable onPress={() => openProfile(details.person._id)}> 
           <EvilIcons name="external-link" size={24} color="black" />
         </Pressable>
       </View>

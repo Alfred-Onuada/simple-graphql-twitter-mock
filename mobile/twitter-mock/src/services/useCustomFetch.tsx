@@ -1,6 +1,6 @@
 const API_URL = "http://192.168.43.178:4000/graphql";
 
-export default async function UseCustomFetch(query: String, variables?: Object, abortSignal?: AbortSignal) {
+export default async function UseCustomFetch(query: String, variables?: Object, abortSignal?: AbortSignal, operationName?: string) {
   try {
     const res = await fetch(API_URL, {
       signal: abortSignal,
@@ -10,13 +10,15 @@ export default async function UseCustomFetch(query: String, variables?: Object, 
       },
       body: JSON.stringify({
         query: query,
-        variables: variables
+        variables: variables,
+        operationName
       }),
       cache: "default"
     })
   
     return res.json();
   } catch (error) {
-    return new Promise((resolve) => resolve({ error }))
+    // returning it as errors because graphql also returns it'w own errors as errors
+    return new Promise((resolve) => resolve({ errors: error }))
   }
 }

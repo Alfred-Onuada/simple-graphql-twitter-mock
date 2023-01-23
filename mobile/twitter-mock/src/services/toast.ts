@@ -1,4 +1,5 @@
 import Toast from 'react-native-root-toast';
+import * as Haptics from 'expo-haptics';
 
 export default function showToast({ msg, danger }: { msg: string, danger?: boolean }) {
   const toast = Toast.show(msg, {
@@ -16,4 +17,11 @@ export default function showToast({ msg, danger }: { msg: string, danger?: boole
       paddingHorizontal: 25
     }
   })
+
+  // provides a simple vibrations
+  if (danger) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  } else {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
 }

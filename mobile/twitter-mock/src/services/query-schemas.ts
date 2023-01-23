@@ -45,9 +45,47 @@ const SAVE_TWEET = `#graphql
   }
 `;
 
+const QUERY_FOR_PERSON = `#graphql
+  query GetPerson($id: ID!) {
+    getPerson(_id: $id) {
+      _id
+      age
+      bio
+      email
+      name
+    }
+  }
+`;
+
+const PERSONAL_SUBSCRIPTION_QUERY = `#graphql
+  subscription newTweetAddedFromSpecificUser($id: ID!) {
+    newTweetAddedFromSpecificUser(_id: $id) {
+      description
+      person {
+        name
+      }
+    }
+  }
+`;
+
+const NEW_TWEET_SUB = `#graphql
+  subscription newTweetSub {
+    newTweetAdded {
+      description
+      person {
+        name
+        email  
+      }
+    }
+  }
+`;
+
 export {
   QUERY_FOR_TWEETS,
   QUERY_DELETE_TWEET,
   QUERY_FOR_USERS,
-  SAVE_TWEET
+  SAVE_TWEET,
+  QUERY_FOR_PERSON,
+  PERSONAL_SUBSCRIPTION_QUERY,
+  NEW_TWEET_SUB
 }

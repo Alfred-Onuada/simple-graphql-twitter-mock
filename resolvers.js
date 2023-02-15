@@ -133,22 +133,10 @@ const resolvers = {
       // note the person is from mongoDb schema not graphQL,
       // basically the parent object contains the payload of the previous stage
 
-      const person = await Person.findOne({ _id: person_id });
+      const person = await Person.findOne({ where: { _id: person_id } });
 
       return person.dataValues;
     },
-    likes: async ({ _id, likes }) => {
-
-      if (likes) {
-        return likes;
-      } else {
-        let likes = Math.ceil(Math.random() * 1_000_000);
-
-        await Person.update({ likes: likes }, { where: { _id: _id } });
-
-        return likes;
-      }
-    }
   }
 }
 

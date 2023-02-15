@@ -108,6 +108,10 @@ export default function App() {
   };
 
   const saveTweet = async () => {
+
+    console.log(selectedUser);
+    console.log(listOfUsers);
+
     // basically if they exist
     if (tweetDescription.length > 0 && selectedUser.length > 0) {
       const newTweet = { description: tweetDescription, person: selectedUser };
@@ -118,6 +122,8 @@ export default function App() {
         showToast({ msg: "An error occured while adding tweet", danger: true });
         return;
       }
+
+      console.log(response.data)
 
       setTweets((prevTweets: ITweet[]) => {
         let newSetOfTweets = [response.data.addTweet, ...prevTweets];

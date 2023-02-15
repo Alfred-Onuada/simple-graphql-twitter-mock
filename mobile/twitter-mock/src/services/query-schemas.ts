@@ -21,6 +21,14 @@ const QUERY_DELETE_TWEET = `#graphql
   }
 `;
 
+const QUERY_LIKE_TWEET = `#graphql
+  mutation LikeTweet($id: ID!) {
+    likeTweet(_id: $id) {
+      likes
+    }
+  }
+`;
+
 const QUERY_FOR_USERS = `#graphql
   query {
     people {
@@ -86,6 +94,7 @@ export {
   QUERY_FOR_USERS,
   SAVE_TWEET,
   QUERY_FOR_PERSON,
+  QUERY_LIKE_TWEET,
   PERSONAL_SUBSCRIPTION_QUERY,
   NEW_TWEET_SUB
 }

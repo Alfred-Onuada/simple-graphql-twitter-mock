@@ -92,6 +92,20 @@ const resolvers = {
       } else {
         throw new Error("There was a problem deleting tweet");
       }
+    },
+    likeTweet: async (parent, { _id }) => {
+      console.log(_id)
+      const tweet = await Tweet.findOne({ where: { _id: _id } });
+
+      if (tweet == null) {
+        throw new Error("Invalid tweet id")
+      }
+
+      await tweet.increment('likes'); // by 1
+
+      const updatedTweet = await tweet.reload();
+
+      return updatedTweet.dataValues;
     }
   },
   Subscription: {

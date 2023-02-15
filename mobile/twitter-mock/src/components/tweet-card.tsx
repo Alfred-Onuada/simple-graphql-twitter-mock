@@ -3,9 +3,10 @@ import ITweet from "../interfaces/tweet";
 import { EvilIcons, AntDesign, MaterialIcons } from '@expo/vector-icons';
 import showToast from "../services/toast";
 import UseCustomFetch from "../services/useCustomFetch";
-import { QUERY_DELETE_TWEET } from "../services/query-schemas";
+import { QUERY_DELETE_TWEET, QUERY_LIKE_TWEET } from "../services/query-schemas";
+import { Dispatch, SetStateAction } from "react";
 
-export default function TweetCard({ details, deleteTweetInList, openProfile }: { details: ITweet, deleteTweetInList: (id: String) => void, openProfile: (id: String) => void }) {
+export default function TweetCard({ details, deleteTweetInList, openProfile, setTweets }: { details: ITweet, deleteTweetInList: (id: String) => void, openProfile: (id: String) => void, setTweets: Dispatch<SetStateAction<ITweet[]>> }) {
 
   const formatTwitterCount = function (count: number) {
     if (count < 1000) {
@@ -31,6 +32,22 @@ export default function TweetCard({ details, deleteTweetInList, openProfile }: {
     showToast({ msg: "Tweet deleted" })
   }
 
+  const likeTweet = async function (id: String) {
+    const response = await UseCustomFetch(QUERY_LIKE_TWEET, { id });
+
+    if (response.errors) {
+      showToast({ msg: "Action failed", danger: true })
+      return
+    }
+
+    setTweets(prevTweets => prevTweets.map(tweet => {
+      if (tweet._id === id) {
+        tweet.likes = response.data.likeTweet.likes
+      }
+      return tweet;
+    }))
+  }
+
   return (
     <View style={ styles.tweetCard }>
       <View style={styles.tweetHeader}>
@@ -43,7 +60,9 @@ export default function TweetCard({ details, deleteTweetInList, openProfile }: {
       <Text style={{ ...styles.fontFam, ...styles.tweet }}>{ details.description }</Text>
       <View style={styles.footer}>
         <View style={styles.footerContent}>
-          <AntDesign name="like2" size={24} color="black" />
+          <Pressable onPress={() => likeTweet(details._id)}>
+            <AntDesign name="like2" size={24} color="black" />
+          </Pressable>
           <Text style={{ ...styles.fontFam, ...styles.likesCount }}>{ formatTwitterCount(details.likes) }</Text>
         </View>
         {/* deletes tweet */}

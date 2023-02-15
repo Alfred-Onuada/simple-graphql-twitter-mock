@@ -25,7 +25,8 @@ type Mutation{
   addPerson(name: String!, email: String!, age: Int!, bio: String): Person
   deletePerson(_id: ID!): Person
   addTweet(description: String!, person: ID!): Tweet
-  deleteTweet(_id: ID!): Tweet
+  deleteTweet(_id: ID!): Tweet,
+  likeTweet(_id: ID!): Tweet
 }
 
 type Subscription{

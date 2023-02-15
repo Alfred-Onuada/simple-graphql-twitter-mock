@@ -97,7 +97,6 @@ const resolvers = {
   Subscription: {
     newTweetAdded: {
       subscribe: () => {
-        console.log("Hello World")
         return pubsub.asyncIterator('TWEET_ADDED')
       }
     },
@@ -109,13 +108,13 @@ const resolvers = {
         // is this is true it will send the event else it won't
         async (tweetPayload, { _id:personToListenTo }) => { 
 
-          const person = await db.collection('people').findOne({ _id: ObjectId(personToListenTo) });
+          const person = await Person.findOne({ where: { _id: personToListenTo } });
           
           if (person === null) {
             throw new Error("Cannot listen to a non existent user");
           }
 
-          const shouldListen = (new ObjectId(personToListenTo)).equals(tweetPayload.newTweetAddedFromSpecificUser.person);
+          const shouldListen = personToListenTo == tweetPayload.newTweetAddedFromSpecificUser.person;
 
           return shouldListen;
         }
@@ -124,8 +123,7 @@ const resolvers = {
   },
   Person: {
     lastFiveTweets: async ({ _id }) => {
-      const cursor = db.collection('tweets').find({ person: _id }).limit(5);
-      const tweets = await cursor.toArray();
+      const tweets = await Tweet.findAll({ where: { person: _id }, limit: 5, order: [["createdAt", "DESC"]] })
 
       return tweets;
     }
@@ -135,9 +133,9 @@ const resolvers = {
       // note the person is from mongoDb schema not graphQL,
       // basically the parent object contains the payload of the previous stage
 
-      const person = await db.collection('people').findOne({ _id: ObjectId(person_id) });
+      const person = await Person.findOne({ _id: person_id });
 
-      return person;
+      return person.dataValues;
     },
     likes: async ({ _id, likes }) => {
 
@@ -146,7 +144,8 @@ const resolvers = {
       } else {
         let likes = Math.ceil(Math.random() * 1_000_000);
 
-        await db.collection('tweets').updateOne({ _id: ObjectId(_id) }, { $set: { likes } })
+        await Person.update({ likes: likes }, { where: { _id: _id } });
+
         return likes;
       }
     }

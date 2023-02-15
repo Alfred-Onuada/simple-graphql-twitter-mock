@@ -1,105 +1,94 @@
-import { MongoClient } from "mongodb";
-import { ObjectId } from "mongodb";
 import { withFilter, PubSub } from "graphql-subscriptions";
+import Person from "./models/person.model.js";
+import Tweet from "./models/tweet.model.js";
 
 const pubsub = new PubSub();
-const client = new MongoClient(process.env.DB_URI);
-const db = client.db('twitter');
 
 // Use try catch for best pratices
 
 const resolvers = {
   Query: {
     getPerson: async (parent, { _id }) => {
-      const person = await db.collection('people').findOne({ _id: ObjectId(_id) });
+      const person = await Person.findOne({ where: { _id: _id } });
 
       if (person !== null) {
-        return person;
+        return person.dataValues;
       } else {
         throw new Error("Invalid person Id")
       }
     },
     people: async () => {
-      const cursor = db.collection('people').find();
-      const people = await cursor.toArray();
+      const people = await Person.findAll();
 
       return people;
     },
     getTweet: async (parent, { _id }) => {
-      const tweet = await db.collection('tweets').findOne({ _id: ObjectId(_id) });
+      const tweet = await Tweet.findOne({ where: { _id: _id } });
 
       if (tweet !== null) {
-        return tweet;
+        return tweet.dataValues;
       } else {
         throw new Error("Invalid tweet Id");
       }
     },
     tweets: async () => {
-      // figure out how to sort
-      const cursor = db.collection('tweets').find().sort([["_id", -1]]);
-      const tweets = await cursor.toArray();
-
+      const tweets = await Tweet.findAll({ order: [['createdAt', 'DESC']] });
+      
       return tweets;
     }
   },
   Mutation: {
     addPerson: async (parent, { name, email, age, bio }) => {
       const person = { name, email, age, bio };
-      const response = await db.collection('people').insertOne(person);
+      const response = await Person.create(person);
 
-      if (response.acknowledged) {
-        person._id = response.insertedId;
-
-        return person;
+      if (response.dataValues._id) {
+        return response.dataValues;
       } else {
         throw new Error("Person creation failed");
       }
     },
     deletePerson: async (parent, { _id }) => {
-      const person = await db.collection('people').findOne({ _id: ObjectId(_id) });
+      const person = await Person.findOne({ where: { _id: _id } });
 
       if (person == null) {
         throw new Error("No such user exists");
       }
       
-      const response = await db.collection('people').deleteOne({ _id: ObjectId(_id) });
-      await db.collection('tweets').deleteMany({ person: ObjectId(_id) })
+      // the force option actually deletes the record else it will just mark it as deleted
+      await Tweet.destroy({ where: { person: _id }, force: true }); // this order is important because person is a foreign and will be auto removed
+      const response = await Person.destroy({ where: { _id: _id }, force: true });
 
-      if (response.acknowledged && response.deletedCount > 0) {
-        return person; // the person document gotten above
+      if (response == 1) {
+        return person.dataValues; // the person document gotten above
       } else {
         throw new Error("There was a problem deleting");
       }
     },
     addTweet: async (parent , { description, person }) => {
-      if (!ObjectId.isValid(person)) {
-        throw new Error("Invalid id for person");
-      }
+      const tweet = { description, person };
+      const response = await Tweet.create(tweet);
 
-      const tweet = { description, person: ObjectId(person) };
-      const response = await db.collection('tweets').insertOne(tweet);
-
-      if (response.acknowledged) {
-        tweet._id = response.insertedId;
+      if (response.dataValues._id) {
 
         // most likely bad pratice but I'm not sure what the correct way to solve it is
-        pubsub.publish('TWEET_ADDED', { newTweetAdded: tweet, newTweetAddedFromSpecificUser: tweet })
-        return tweet;
+        pubsub.publish('TWEET_ADDED', { newTweetAdded: response.dataValues, newTweetAddedFromSpecificUser: response.dataValues })
+        return response.dataValues;
       } else {
         throw new Error("Failed to add tweet");
       }
     },
     deleteTweet: async (parent, { _id }) => {
-      const tweet = await db.collection('tweets').findOne({ _id: ObjectId(_id) });
+      const tweet = await Tweet.findOne({ where: { _id: _id } });
 
       if (tweet == null) {
         throw new Error("No tweet exists");
       }
       
-      const response = await db.collection('tweets').deleteOne({ _id: ObjectId(_id) });
+      const response = await Tweet.destroy({ where: { _id: _id }, force: true });
 
-      if (response.acknowledged && response.deletedCount > 0) {
-        return tweet; // the tweet document gotten above
+      if (response == 1) {
+        return tweet.dataValues; // the tweet document gotten above
       } else {
         throw new Error("There was a problem deleting tweet");
       }

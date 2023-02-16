@@ -1,4 +1,6 @@
-const QUERY_FOR_TWEETS = `#graphql
+import { gql } from "@apollo/client";
+
+const QUERY_FOR_TWEETS = gql`
   query {
     tweets {
       _id
@@ -29,7 +31,7 @@ const QUERY_LIKE_TWEET = `#graphql
   }
 `;
 
-const QUERY_FOR_USERS = `#graphql
+const QUERY_FOR_USERS = gql`
   query {
     people {
       _id

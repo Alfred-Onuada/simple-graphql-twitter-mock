@@ -67,7 +67,7 @@ const QUERY_FOR_PERSON = `#graphql
   }
 `;
 
-const PERSONAL_SUBSCRIPTION_QUERY = `#graphql
+const PERSONAL_SUBSCRIPTION_QUERY = gql`
   subscription newTweetAddedFromSpecificUser($id: ID!) {
     newTweetAddedFromSpecificUser(_id: $id) {
       description
@@ -78,14 +78,17 @@ const PERSONAL_SUBSCRIPTION_QUERY = `#graphql
   }
 `;
 
-const NEW_TWEET_SUB = `#graphql
+const NEW_TWEET_SUB = gql`
   subscription newTweetSub {
     newTweetAdded {
+      _id
       description
+      likes
       person {
+        _id
         name
-        email  
-      }
+        email
+      }  
     }
   }
 `;

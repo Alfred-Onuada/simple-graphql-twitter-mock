@@ -1,29 +1,26 @@
-import { Dispatch, SetStateAction, useState } from "react";
-import { View, StyleSheet, Text, FlatList, TouchableOpacity, Modal, TextInput, Pressable } from "react-native";
+import { useState } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Modal, TextInput, Pressable } from "react-native";
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import { NEW_TWEET_SUB, PERSONAL_SUBSCRIPTION_QUERY, QUERY_FOR_PERSON, SAVE_TWEET } from './../services/query-schemas';
-import TweetCard from './tweet-card';
+import { QUERY_FOR_PERSON, SAVE_TWEET } from './../services/query-schemas';
 import showToast from './../services/toast';
 import { Picker } from "@react-native-picker/picker";
 import IPerson from './../interfaces/person';
 import UseCustomFetch from './../services/useCustomFetch';
 import ITweet from "../interfaces/tweet";
+import Tweets from "./tweets";
 
-export default function Home({ initialTweets, users }: { initialTweets: ITweet[], users: IPerson[] }) {
+export default function Home({ initialTweets, users, expoPushToken, sendNotification, canSendNotification }: { initialTweets: ITweet[], users: IPerson[], expoPushToken: string | undefined, sendNotification: (expoPushToken: string, payload: { title: string, body: string, data?: Object }) => void, canSendNotification: boolean }) {
   
   const [profileModalOpenStatus, setProfileModalOpenStatus] = useState(false);
   const [profileDetails, setProfileDetails] = useState<IPerson>();
-  const [subcribed, setSubscribed] = useState(false);
   const [tweetModalOpenStatus, setTweetModalOpenStatus] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
   const [tweetDescription, setTweetDescription] = useState('');
-  const [tweets, setTweets] = useState<ITweet[]>(initialTweets)
 
-  const subscribeAction = async function (id: String) {
-  
-    setSubscribed(currState => !currState);
-  }
+  // TODO: maybe later on figure out how to subscribe to a specific user, 
+  // currently I can't figure out how to subscribe on button click as
+  // hooks can not be called from within functions
 
   const openProfile = async function (id: String) {
     const response = await UseCustomFetch(QUERY_FOR_PERSON, { id });
@@ -37,14 +34,6 @@ export default function Home({ initialTweets, users }: { initialTweets: ITweet[]
 
     setProfileModalOpenStatus(true);
   }
-
-  const deleteTweetInList = function (id: String) {
-    setTweets(prevTweets => {
-      let tweets = prevTweets.filter((tweet: ITweet) => tweet._id !== id) 
-
-      return tweets;
-    })
-  };
 
   const addTweet = function () {
     setTweetModalOpenStatus(true)
@@ -62,11 +51,14 @@ export default function Home({ initialTweets, users }: { initialTweets: ITweet[]
         return;
       }
 
-      setTweets((prevTweets: ITweet[]) => {
-        let newSetOfTweets = [response.data.addTweet, ...prevTweets];
-
-        return newSetOfTweets;
-      });
+      // when a new tweet is added it will call the subscription so no need to add it manually
+      if (canSendNotification && expoPushToken) {
+        const payload = {
+          title: 'New tweet added',
+          body: tweetDescription
+        }
+        sendNotification(expoPushToken, payload)
+      }
 
       // reset the form values
       setSelectedUser('');
@@ -84,7 +76,7 @@ export default function Home({ initialTweets, users }: { initialTweets: ITweet[]
         animationType='slide'
         visible={tweetModalOpenStatus}
         transparent={true}
-      >
+        >
         <View style={styles.modalDim}>
           <View style={styles.modalContent}>
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -149,10 +141,15 @@ export default function Home({ initialTweets, users }: { initialTweets: ITweet[]
                   <Text style={styles.profileInfo}><Text style={styles.profileInfoTitle}>Year of birth:</Text> {profileDetails.age ? new Date().getFullYear() - profileDetails.age : ''}</Text>
                 </View>
 
-                <TouchableOpacity style={styles.subBtn}
-                  onPress={() => subscribeAction(profileDetails._id)}>
-                  <Text style={styles.subText}>{subcribed ? 'Subscribed' : 'Subscribe'}</Text>
-                </TouchableOpacity>
+                {/* { 
+                  canSendNotification ?
+                    <TouchableOpacity style={styles.subBtn}
+                      onPress={() => subscribeAction(profileDetails._id)}>
+                      <Text style={styles.subText}>{subcribedMap.get(profileDetails._id) ? 'Subscribed' : 'Subscribe'}</Text>
+                    </TouchableOpacity>
+                  : null
+                } */}
+                
               </View>
             }
 
@@ -166,16 +163,9 @@ export default function Home({ initialTweets, users }: { initialTweets: ITweet[]
           <Text style={styles.headerTitle}>My Twitter</Text>
         </View>
 
-        <FlatList
-          data={tweets}
-          renderItem={({ item }) => (
-            <TweetCard
-              details={item}
-              deleteTweetInList={deleteTweetInList}
-              openProfile={openProfile}
-              setTweets={setTweets} />
-          )}
-        />
+        <Tweets initialTweets={initialTweets}
+          openProfile={openProfile}/>
+        
 
         {/* opens the add tweet modal */}
         <TouchableOpacity style={styles.addTweetIcon}
